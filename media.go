@@ -536,6 +536,63 @@ func (item *Item) Download(folder, name string) (imgs, vds string, err error) {
 		vds, err = download(inst, vds, nname)
 		return "", vds, err
 	}
+	
+	if len(item.CarouselMedia) > 0 {
+		for _, carouselItem := range item.CarouselMedia {
+			imgs = GetBest(carouselItem.Images.Versions)
+			if imgs != "" {
+				if name == "" {
+					u, err = neturl.Parse(imgs)
+					if err != nil {
+						return
+					}
+
+					nname = path.Join(imgFolder, path.Base(u.Path))
+				} else {
+					nname = path.Join(imgFolder, nname)
+				}
+
+				if !overwrite {
+					nname = getname(nname)
+				} else {
+					nname = getNameOverwrite(nname)
+				}
+				nname += string(time.Now().Unix())
+				imgsr, err := download(inst, imgs, nname)
+				if err != nil {
+					return "", "", nil
+				}
+				imgs += "," + imgsr
+			}
+
+			vds = GetBest(carouselItem.Videos)
+			if vds != "" {
+				if name == "" {
+					u, err = neturl.Parse(vds)
+					if err != nil {
+						return "", "", err
+					}
+
+					nname = path.Join(vidFolder, path.Base(u.Path))
+				} else {
+					nname = path.Join(vidFolder, nname)
+				}
+
+				if !overwrite {
+					nname = getname(nname)
+				} else {
+					nname = getNameOverwrite(nname)
+				}
+				nname += string(time.Now().Unix())
+				vdsr, err := download(inst, vds, nname)
+				if err != nil {
+					return "", "", err
+				}
+				vds += "," + vdsr
+			}
+		}
+		return imgs, vds, err
+	}
 
 	imgs = GetBest(item.Images.Versions)
 	if imgs != "" {
