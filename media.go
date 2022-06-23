@@ -280,6 +280,16 @@ func getname(name string) string {
 	return name
 }
 
+func getNameOverwrite(name string) string {
+	nname := name
+	ext := path.Ext(name)
+	if ext != "" {
+		nname = strings.Replace(nname, ext, "", -1)
+	}
+	name = fmt.Sprintf("%s%s", nname, ext)
+	return name
+}
+
 func download(inst *Instagram, url, dst string) (string, error) {
 	file, err := os.Create(dst)
 	if err != nil {
@@ -508,7 +518,7 @@ func (item *Item) Unsave() error {
 // This function does not download CarouselMedia.
 //
 // See example: examples/media/itemDownload.go
-func (item *Item) Download(folder, name string) (imgs, vds string, err error) {
+func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds string, err error) {
 	var u *neturl.URL
 	var nname string
 	imgFolder := path.Join(folder, "images")
@@ -531,7 +541,11 @@ func (item *Item) Download(folder, name string) (imgs, vds string, err error) {
 		} else {
 			nname = path.Join(vidFolder, name)
 		}
-		nname = getname(nname)
+		if !overwrite {
+			nname = getname(nname)
+		} else {
+			nname = getNameOverwrite(nname)
+		}
 
 		vds, err = download(inst, vds, nname)
 		return "", vds, err
@@ -606,8 +620,12 @@ func (item *Item) Download(folder, name string) (imgs, vds string, err error) {
 		} else {
 			nname = path.Join(imgFolder, name)
 		}
-		nname = getname(nname)
-
+		
+		if !overwrite {
+			nname = getname(nname)
+		} else {
+			nname = getNameOverwrite(nname)
+		}
 		imgs, err = download(inst, imgs, nname)
 		return imgs, "", err
 	}
