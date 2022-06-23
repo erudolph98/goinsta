@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ahmdrz/goinsta"
+	"github.com/erudolph98/goinsta"
 )
 
 func main() {
