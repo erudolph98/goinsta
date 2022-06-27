@@ -280,16 +280,6 @@ func getname(name string) string {
 	return name
 }
 
-func getNameOverwrite(name string) string {
-	nname := name
-	ext := path.Ext(name)
-	if ext != "" {
-		nname = strings.Replace(nname, ext, "", -1)
-	}
-	name = fmt.Sprintf("%s%s", nname, ext)
-	return name
-}
-
 func download(inst *Instagram, url, dst string) (string, error) {
 	file, err := os.Create(dst)
 	if err != nil {
@@ -515,10 +505,8 @@ func (item *Item) Unsave() error {
 // This function returns an slice of location of downloaded items
 // The returned values are the output path of images and videos.
 //
-// This function does not download CarouselMedia.
-//
 // See example: examples/media/itemDownload.go
-func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds string, err error) {
+func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds []string, err error) {
 	var u *neturl.URL
 	var nname string
 	imgFolder := path.Join(folder, "images")
@@ -543,40 +531,37 @@ func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds strin
 		}
 		if !overwrite {
 			nname = getname(nname)
-		} else {
-			nname = getNameOverwrite(nname)
 		}
 
 		vds, err = download(inst, vds, nname)
-		return "", vds, err
+		return []string{}, []string{vds}, err
 	}
 	
 	if len(item.CarouselMedia) > 0 {
+		imgPaths := make([]string, 0)
+		vdPaths := make([]string, 0)
 		for _, carouselItem := range item.CarouselMedia {
 			imgs = GetBest(carouselItem.Images.Versions)
 			if imgs != "" {
 				if name == "" {
 					u, err = neturl.Parse(imgs)
 					if err != nil {
-						return
+						return []string{}, []string{}, err
 					}
 
 					nname = path.Join(imgFolder, path.Base(u.Path))
 				} else {
-					nname = path.Join(imgFolder, nname)
+					nname = path.Join(imgFolder, name)
 				}
 
 				if !overwrite {
 					nname = getname(nname)
-				} else {
-					nname = getNameOverwrite(nname)
 				}
-				nname += string(time.Now().Unix())
 				imgsr, err := download(inst, imgs, nname)
 				if err != nil {
-					return "", "", nil
+					return []string{}, []string{}, err
 				}
-				imgs += "," + imgsr
+				imgPaths = append(imgPaths, imgsr)
 			}
 
 			vds = GetBest(carouselItem.Videos)
@@ -584,28 +569,25 @@ func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds strin
 				if name == "" {
 					u, err = neturl.Parse(vds)
 					if err != nil {
-						return "", "", err
+						return []string{}, []string{}, err
 					}
 
 					nname = path.Join(vidFolder, path.Base(u.Path))
 				} else {
-					nname = path.Join(vidFolder, nname)
+					nname = path.Join(vidFolder, name)
 				}
 
 				if !overwrite {
 					nname = getname(nname)
-				} else {
-					nname = getNameOverwrite(nname)
 				}
-				nname += string(time.Now().Unix())
 				vdsr, err := download(inst, vds, nname)
 				if err != nil {
-					return "", "", err
+					return []string{}, []string{}, err
 				}
-				vds += "," + vdsr
+				vdPaths = append(vdPaths, vdsr)
 			}
 		}
-		return imgs, vds, err
+		return imgPaths, vdPaths, err
 	}
 
 	imgs = GetBest(item.Images.Versions)
@@ -613,7 +595,7 @@ func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds strin
 		if name == "" {
 			u, err = neturl.Parse(imgs)
 			if err != nil {
-				return
+				return []string{}, []string{}, err
 			}
 
 			nname = path.Join(imgFolder, path.Base(u.Path))
@@ -623,14 +605,12 @@ func (item *Item) Download(folder, name string, overwrite bool) (imgs, vds strin
 		
 		if !overwrite {
 			nname = getname(nname)
-		} else {
-			nname = getNameOverwrite(nname)
 		}
 		imgs, err = download(inst, imgs, nname)
-		return imgs, "", err
+		return []string{imgs}, []string{}, err
 	}
 
-	return imgs, vds, fmt.Errorf("cannot find any image or video")
+	return []string{}, []string{}, fmt.Errorf("cannot find any image or video")
 }
 
 // TopLikers returns string slice or single string (inside string slice)
